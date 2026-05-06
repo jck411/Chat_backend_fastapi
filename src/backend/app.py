@@ -357,20 +357,25 @@ def create_app() -> FastAPI:
     else:
         logging.warning(f"Admin UI not found at {admin_dir}; /admin will 404.")
 
-    # Serve the kiosk frontend from an external directory if present.
-    # The kiosk repo (kiosk_echo_frontend) deploys its built dist/ to this
-    # path on the LXC; locally it can be unset and /kiosk just 404s.
+    # Serve the kiosk frontend from an external directory. The kiosk repo
+    # (kiosk_echo_frontend) deploys its built dist/ to this path on the LXC.
+    # Mount unconditionally with check_dir=False so a fresh deploy doesn't
+    # require a backend restart — StaticFiles will 404 until index.html exists.
     kiosk_dir = Path(settings.kiosk_static_dir).expanduser()
-    if kiosk_dir.is_dir() and (kiosk_dir / "index.html").exists():
-        app.mount(
-            "/kiosk",
-            StaticFiles(directory=kiosk_dir, html=True),
-            name="kiosk",
-        )
+    try:
+        kiosk_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        logging.warning(f"Could not create kiosk dir {kiosk_dir}: {exc}")
+    app.mount(
+        "/kiosk",
+        StaticFiles(directory=kiosk_dir, html=True, check_dir=False),
+        name="kiosk",
+    )
+    if (kiosk_dir / "index.html").exists():
         logging.info(f"Kiosk frontend mounted from {kiosk_dir}")
     else:
         logging.info(
-            f"Kiosk static dir {kiosk_dir} not present; /kiosk will 404 "
+            f"Kiosk static dir {kiosk_dir} is empty; /kiosk will 404 "
             "until the kiosk frontend is deployed."
         )
 
