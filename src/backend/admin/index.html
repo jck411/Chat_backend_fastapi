@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Backend Admin</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <header>
+        <h1>Backend Admin</h1>
+        <nav>
+            <button data-tab="prompt" class="active">System Prompt</button>
+            <button data-tab="mcp">MCP Servers</button>
+            <button data-tab="settings">Client Settings</button>
+            <button data-tab="health">Health</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- System Prompt -->
+        <section id="prompt" class="tab active">
+            <h2>System Prompt</h2>
+            <label>Client
+                <select id="prompt-client">
+                    <option value="kiosk">kiosk</option>
+                    <option value="svelte">svelte</option>
+                </select>
+            </label>
+            <label>Model
+                <input id="prompt-model" type="text" />
+            </label>
+            <label>Prompt
+                <textarea id="prompt-text" rows="14"></textarea>
+            </label>
+            <div class="row">
+                <button id="prompt-save">Save</button>
+                <button id="prompt-reset" class="secondary">Reset to default</button>
+                <span id="prompt-status" class="status"></span>
+            </div>
+        </section>
+
+        <!-- MCP -->
+        <section id="mcp" class="tab">
+            <h2>MCP Servers</h2>
+            <p class="hint">Toggle which MCP servers are exposed to a client. Server enable/disable toggles persist
+                globally.</p>
+            <label>Client preferences for
+                <select id="mcp-client">
+                    <option value="kiosk">kiosk</option>
+                    <option value="svelte">svelte</option>
+                </select>
+            </label>
+            <table id="mcp-table">
+                <thead>
+                    <tr>
+                        <th>Server</th>
+                        <th>Status</th>
+                        <th>Server Enabled</th>
+                        <th>Allowed for Client</th>
+                        <th>Tools</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div class="row">
+                <button id="mcp-refresh">Refresh from servers</button>
+                <button id="mcp-save">Save client preferences</button>
+                <span id="mcp-status" class="status"></span>
+            </div>
+        </section>
+
+        <!-- Raw client settings editor -->
+        <section id="settings" class="tab">
+            <h2>Client Settings (raw JSON)</h2>
+            <p class="hint">Edit raw LLM, STT, TTS, UI settings as JSON. Be careful — invalid values are rejected by the
+                API.</p>
+            <div class="row">
+                <label>Client
+                    <select id="settings-client">
+                        <option value="kiosk">kiosk</option>
+                        <option value="svelte">svelte</option>
+                    </select>
+                </label>
+                <label>Section
+                    <select id="settings-section">
+                        <option value="llm">llm</option>
+                        <option value="stt">stt</option>
+                        <option value="tts">tts</option>
+                        <option value="ui">ui</option>
+                    </select>
+                </label>
+                <button id="settings-load">Load</button>
+                <button id="settings-save">Save</button>
+                <button id="settings-reset" class="secondary">Reset to defaults</button>
+                <span id="settings-status" class="status"></span>
+            </div>
+            <textarea id="settings-json" rows="22" spellcheck="false"></textarea>
+        </section>
+
+        <!-- Health -->
+        <section id="health" class="tab">
+            <h2>Health</h2>
+            <pre id="health-output">(loading...)</pre>
+            <button id="health-refresh">Refresh</button>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

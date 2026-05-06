@@ -1,0 +1,108 @@
+{
+    // Project-specific Python settings
+    "python.defaultInterpreterPath": "python",
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "terminal.integrated.inheritEnv": true,
+    // Node.js settings for frontend development
+    "typescript.preferences.includePackageJsonAutoImports": "on",
+    "typescript.suggest.autoImports": true,
+    // Python development settings (team-shared)
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "ruff.importStrategy": "useBundled",
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/src"
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.linting.enabled": false,
+    // Code quality settings (team-shared)
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "always",
+        "source.fixAll": "always"
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "editor.rulers": [
+        88
+    ],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    // Auto-approve all terminal commands and tool invocations
+    "chat.tools.autoApprove": true,
+    "chat.tools.terminal.autoApprove": {
+        "/./": true
+    },
+    "github.copilot.chat.agent.runTasks": true,
+    "zenMode.centerLayout": false,
+    "zenMode.hideActivityBar": false,
+    "zenMode.hideLineNumbers": false,
+    "search.useGlobalIgnoreFiles": true,
+    "search.useParentIgnoreFiles": true,
+    // MCP Server configuration for GitHub Copilot
+    "github.copilot.chat.modelContextProtocol.servers": {
+        "context7": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@context-labs/mcp-server-context7"
+            ],
+            "env": {
+                "CONTEXT7_API_KEY": "${env:CONTEXT7_API_KEY}"
+            }
+        },
+        "github": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-github"
+            ],
+            "env": {
+                "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+            }
+        },
+        "playwright": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@executeautomation/playwright-mcp-server"
+            ]
+        },
+        "chrome-devtools": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@anaisbetts/mcp-server-chrome"
+            ]
+        },
+        "sqlite": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-sqlite",
+                "--db-path",
+                "${workspaceFolder}/data/chat_sessions.db"
+            ]
+        },
+        "filesystem": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "${workspaceFolder}"
+            ]
+        }
+    },
+    "chat.agent.maxRequests": 50
+}

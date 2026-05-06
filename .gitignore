@@ -1,0 +1,75 @@
+# Virtual envs & Python caches
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build/packaging
+build/
+dist/
+*.egg-info/
+
+# Editors/OS
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Env & local config
+.env
+.env.*
+!.env.example
+
+# Runtime mutable data — never in git
+# (bundled read-only defaults live in src/backend/data/)
+data/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Log files
+logs/*
+!logs/.gitkeep
+!logs/shell/.gitkeep
+*.log
+backend.log
+backend.pid
+
+# Azure keyword model zips (models live in data/ which is already ignored)
+*.table
+computer_azurekw.zip
+
+# Credentials and tokens
+*credentials*.json
+*token*.json
+google_tasks_credentials.json
+google_tasks_token.json
+credentials/
+.credentials/
+secrets/
+
+# Node modules
+node_modules/
+
+# UV lock files (keep pyproject & lock as desired)
+# uv.lock can be committed; comment out next line if you want it tracked
+# uv.lock
+
+# Kreuzberg cache
+.kreuzberg/

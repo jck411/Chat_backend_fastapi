@@ -1,0 +1,14 @@
+{
+    "recommendations": [
+        "GitHub.copilot",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "aaron-bond.better-comments",
+        "GitHub.vscode-github-actions",
+        "bierner.markdown-mermaid",
+        "alexcvzz.vscode-sqlite",
+        "openai.chatgpt"
+    ]
+}
