@@ -73,3 +73,7 @@ node_modules/
 
 # Kreuzberg cache
 .kreuzberg/
+
+.env.config
+
+.env.network

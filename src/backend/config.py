@@ -16,7 +16,12 @@ class Settings(BaseSettings):
     """Load configuration from environment variables and `.env`."""
 
     model_config = SettingsConfigDict(
-        env_file=str(PROJECT_ROOT / ".env"),
+        # Load order: later files override earlier ones, so .env (secrets) wins.
+        env_file=(
+            str(PROJECT_ROOT / ".env.config"),
+            str(PROJECT_ROOT / ".env.network"),
+            str(PROJECT_ROOT / ".env"),
+        ),
         env_file_encoding="utf-8",
         extra="ignore",
     )

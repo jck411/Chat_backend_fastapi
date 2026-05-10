@@ -214,6 +214,8 @@ def main():
     # Load environment variables from .env file
     env_path = Path(__file__).parent.parent / ".env"
     load_dotenv(env_path)
+    load_dotenv(env_path.parent / ".env.network", override=False)
+    load_dotenv(env_path.parent / ".env.config", override=False)
 
     # Check for authentication credentials
     has_token = bool(os.getenv("CLOUDFLARE_API_TOKEN"))

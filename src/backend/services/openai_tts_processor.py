@@ -12,6 +12,8 @@ from backend.schemas.client_settings import TtsSettings
 
 # Load environment variables from .env file
 load_dotenv()
+load_dotenv(".env.network", override=False)
+load_dotenv(".env.config", override=False)
 
 logger = logging.getLogger(__name__)
 

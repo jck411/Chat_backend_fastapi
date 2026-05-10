@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
+load_dotenv(env_path.parent / ".env.network", override=False)
+load_dotenv(env_path.parent / ".env.config", override=False)
 
 
 def print_menu():
