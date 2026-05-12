@@ -213,7 +213,7 @@ def main() -> int:
 Examples:
   %(prog)s list
   %(prog)s show cli-default
-  %(prog)s create my-profile --servers shell-control,notes
+  %(prog)s create my-profile --servers calculator,hue
   %(prog)s enable my-profile spotify
   %(prog)s disable my-profile gmail
   %(prog)s delete my-profile

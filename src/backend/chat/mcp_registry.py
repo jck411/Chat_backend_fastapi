@@ -143,7 +143,7 @@ def _load_mcp_port_range() -> range:
         Path(__file__).parents[3] / "data" / "mcp_ports.conf",
         Path(__file__).parent.parent / "data" / "mcp_ports.conf",
     ]
-    start, end = 9001, 9017  # MCP discovery range. (knowledge_api on 9018 is a REST API, not MCP.)
+    start, end = 9003, 9017  # MCP discovery range. (knowledge_api on 9018 is a REST API, not MCP.)
     for config_path in config_paths:
         try:
             for line in config_path.read_text().splitlines():
