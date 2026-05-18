@@ -208,28 +208,28 @@ class MCPToolClient:
         finally:
             if self._ready_event is not None and not self._ready_event.is_set():
                 self._ready_event.set()
-            close_task = asyncio.create_task(exit_stack.aclose())
             try:
-                closed = await _wait_task_or_cancel(close_task, SESSION_EXIT_TIMEOUT)
+                async with asyncio.timeout(SESSION_EXIT_TIMEOUT):
+                    await exit_stack.aclose()
+            except TimeoutError:
+                logger.warning(
+                    "MCP session resource close timed out for server '%s'",
+                    self._server_id,
+                )
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
                     "Error closing MCP session resources for server '%s': %s",
                     self._server_id,
                     exc,
                 )
-            else:
-                if not closed:
-                    logger.warning(
-                        "MCP session resource close timed out for server '%s'",
-                        self._server_id,
-                    )
-            async with self._lock:
-                self._exit_stack = None
-                self._session = None
-                self._tools = []
-                self._close_event = None
-                self._ready_event = None
-                self._lifecycle_task = None
+            finally:
+                async with self._lock:
+                    self._exit_stack = None
+                    self._session = None
+                    self._tools = []
+                    self._close_event = None
+                    self._ready_event = None
+                    self._lifecycle_task = None
 
     async def connect(self) -> None:
         """Connect to the MCP server and initialise the session."""
