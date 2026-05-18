@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -142,6 +143,31 @@ class TestConnection:
 
         await client.close()
         assert client.tools == []
+
+    async def test_close_returns_when_lifecycle_cleanup_stalls(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import backend.chat.mcp_client as mcp_client
+
+        client = MCPToolClient(url="http://example.com/mcp", server_id="test")
+        monkeypatch.setattr(mcp_client, "SESSION_CLOSE_TIMEOUT", 0.01)
+
+        async def slow_lifecycle() -> None:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                await asyncio.sleep(0.2)
+                raise
+
+        task = asyncio.create_task(slow_lifecycle())
+        client._lifecycle_task = task
+        client._close_event = asyncio.Event()
+
+        await asyncio.wait_for(client.close(), timeout=0.05)
+        assert client.tools == []
+
+        with suppress(asyncio.CancelledError):
+            await task
 
     async def test_double_connect_idempotent(self, mock_session: MagicMock) -> None:
         client = MCPToolClient(url="http://example.com/mcp", server_id="test")

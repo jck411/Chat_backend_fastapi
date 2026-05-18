@@ -16,6 +16,30 @@ logger = logging.getLogger(__name__)
 
 # Connection timeout for HTTP MCP servers (seconds)
 HTTP_CONNECTION_TIMEOUT = 30.0
+SESSION_EXIT_TIMEOUT = 2.0
+SESSION_CLOSE_TIMEOUT = 2.5
+
+
+def _consume_task_result(task: asyncio.Task) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Background MCP cleanup finished with error: %s", exc)
+
+
+async def _wait_task_or_cancel(task: asyncio.Task, timeout: float) -> bool:
+    done, _ = await asyncio.wait({task}, timeout=timeout)
+    if task in done:
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass
+        return True
+    task.cancel()
+    task.add_done_callback(_consume_task_result)
+    return False
 
 
 class MCPToolClient:
@@ -184,18 +208,21 @@ class MCPToolClient:
         finally:
             if self._ready_event is not None and not self._ready_event.is_set():
                 self._ready_event.set()
+            close_task = asyncio.create_task(exit_stack.aclose())
             try:
-                await asyncio.wait_for(exit_stack.aclose(), timeout=2.0)
-            except asyncio.TimeoutError:
-                logger.warning(
-                    "MCP session close timed out for server '%s'", self._server_id
-                )
+                closed = await _wait_task_or_cancel(close_task, SESSION_EXIT_TIMEOUT)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
-                    "Error closing MCP session for server '%s': %s",
+                    "Error closing MCP session resources for server '%s': %s",
                     self._server_id,
                     exc,
                 )
+            else:
+                if not closed:
+                    logger.warning(
+                        "MCP session resource close timed out for server '%s'",
+                        self._server_id,
+                    )
             async with self._lock:
                 self._exit_stack = None
                 self._session = None
@@ -262,15 +289,18 @@ class MCPToolClient:
             close_event.set()
 
         try:
-            await asyncio.wait_for(lifecycle, timeout=2.5)
-        except asyncio.TimeoutError:
-            logger.warning(
-                "MCP session close timed out for server '%s'", self._server_id
-            )
+            closed = await _wait_task_or_cancel(lifecycle, SESSION_CLOSE_TIMEOUT)
         except Exception as exc:  # noqa: BLE001
             logger.warning(
-                "Error closing MCP session for server '%s': %s", self._server_id, exc
+                "Error closing MCP session for server '%s': %s",
+                self._server_id,
+                exc,
             )
+        else:
+            if not closed:
+                logger.warning(
+                    "MCP session close timed out for server '%s'", self._server_id
+                )
 
         async with self._lock:
             self._exit_stack = None

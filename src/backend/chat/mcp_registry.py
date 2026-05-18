@@ -28,6 +28,30 @@ from pydantic import (
 from .mcp_client import MCPToolClient
 
 logger = logging.getLogger(__name__)
+MCP_CLIENT_REFRESH_TIMEOUT = 10.0
+MCP_CLIENT_CLOSE_TIMEOUT = 3.0
+
+
+def _consume_task_result(task: asyncio.Task) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Background MCP task finished with error: %s", exc)
+
+
+async def _run_with_timeout(coro: Any, timeout: float) -> Any:
+    task = asyncio.create_task(coro)
+    done, _ = await asyncio.wait({task}, timeout=timeout)
+    if task in done:
+        try:
+            return task.result()
+        except asyncio.CancelledError as exc:
+            raise TimeoutError from exc
+    task.cancel()
+    task.add_done_callback(_consume_task_result)
+    raise TimeoutError
 
 
 # ---------------------------------------------------------------------------
@@ -414,8 +438,8 @@ class MCPToolAggregator:
         async with self._lock:
             for server_id, client in list(self._clients.items()):
                 try:
-                    await asyncio.wait_for(client.close(), timeout=3.0)
-                except asyncio.TimeoutError:
+                    await _run_with_timeout(client.close(), MCP_CLIENT_CLOSE_TIMEOUT)
+                except TimeoutError:
                     logger.warning("Timeout closing MCP client '%s'", server_id)
                 except Exception as exc:
                     logger.warning("Error closing MCP client '%s': %s", server_id, exc)
@@ -571,12 +595,18 @@ class MCPToolAggregator:
                 continue
 
             try:
-                await client.refresh_tools()
-            except ClosedResourceError:
-                logger.warning(
-                    "MCP server '%s' closed during refresh; removing", config.id
+                await _run_with_timeout(
+                    client.refresh_tools(), MCP_CLIENT_REFRESH_TIMEOUT
                 )
-                await client.close()
+            except (ClosedResourceError, TimeoutError):
+                logger.warning(
+                    "MCP server '%s' closed or timed out during refresh; removing",
+                    config.id,
+                )
+                try:
+                    await _run_with_timeout(client.close(), MCP_CLIENT_CLOSE_TIMEOUT)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Error closing MCP client '%s': %s", config.id, exc)
                 self._clients.pop(config.id, None)
                 tool_catalog[config.id] = []
                 continue

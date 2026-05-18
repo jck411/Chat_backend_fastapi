@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -495,6 +496,46 @@ async def test_http_server_connection_failure_handling(
         assert len(aggregator.get_openai_tools()) == 0
     finally:
         await aggregator.close()
+
+
+async def test_refresh_timeout_removes_unresponsive_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A stuck MCP server refresh must not hang the whole catalogue refresh."""
+
+    monkeypatch.setattr("backend.chat.mcp_registry.MCP_CLIENT_REFRESH_TIMEOUT", 0.01)
+    monkeypatch.setattr("backend.chat.mcp_registry.MCP_CLIENT_CLOSE_TIMEOUT", 0.01)
+    created: dict[str, Any] = {}
+
+    class SlowRefreshClient:
+        def __init__(self, url: str, **kwargs: Any) -> None:
+            self._server_id = kwargs.get("server_id", "unknown")
+            self.closed = False
+            created[self._server_id] = self
+
+        async def connect(self) -> None:
+            return None
+
+        async def refresh_tools(self) -> None:
+            await asyncio.sleep(0.2)
+
+        async def close(self) -> None:
+            self.closed = True
+
+        @property
+        def tools(self) -> list[Tool]:
+            return []
+
+        def get_openai_tools(self) -> list[dict[str, Any]]:
+            return []
+
+    monkeypatch.setattr("backend.chat.mcp_registry.MCPToolClient", SlowRefreshClient)
+
+    aggregator = MCPToolAggregator([make_config(id="knowledge")])
+    await aggregator.connect()
+
+    assert aggregator.active_servers() == []
+    assert created["knowledge"].closed is True
 
 
 async def test_describe_servers(monkeypatch: pytest.MonkeyPatch) -> None:
