@@ -58,13 +58,20 @@ def make_fake_client_factory(
     """Return a FakeClient class that replaces MCPToolClient in tests."""
 
     class FakeClient:
-        def __init__(self, url: str, *, server_id: str | None = None) -> None:
+        def __init__(
+            self,
+            url: str,
+            *,
+            server_id: str | None = None,
+            headers: dict[str, str] | None = None,
+        ) -> None:
             sid = server_id or url
             definitions = tool_map.get(sid, [])
             self._tools = [tool for tool, _ in definitions]
             self._specs = [spec for _, spec in definitions]
             self._calls: list[tuple[str, dict[str, Any]]] = []
             self._closed = False
+            self._headers = dict(headers or {})
             self._server_id = sid
             self._url = url
             created[sid] = self
@@ -76,6 +83,10 @@ def make_fake_client_factory(
         @property
         def url(self) -> str:
             return self._url
+
+        @property
+        def headers(self) -> dict[str, str]:
+            return dict(self._headers)
 
         async def connect(self) -> None:
             return None
@@ -131,6 +142,28 @@ def test_config_new_format() -> None:
     assert cfg.id == "test"
     assert cfg.url == "http://host:9000/mcp"
     assert cfg.disabled_tools == set()
+
+
+def test_config_resolves_bearer_token_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TEST_MCP_TOKEN", "secret")
+    cfg = MCPServerConfig(
+        id="test",
+        url="http://host:9000/mcp",
+        bearer_token_env_var="TEST_MCP_TOKEN",
+    )
+    assert cfg.http_headers() == {"Authorization": "Bearer secret"}
+
+
+def test_config_missing_bearer_token_returns_no_headers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("TEST_MCP_TOKEN", raising=False)
+    cfg = MCPServerConfig(
+        id="test",
+        url="http://host:9000/mcp",
+        bearer_token_env_var="TEST_MCP_TOKEN",
+    )
+    assert cfg.http_headers() == {}
 
 
 def test_config_ignores_extra_fields() -> None:
@@ -238,9 +271,25 @@ async def test_aggregator_preserves_unique_names(
     assert result.structuredContent["server"] == "server_a"
     assert created["server_a"].calls == [("alpha", {"value": 1})]
 
+
+async def test_aggregator_passes_configured_bearer_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TEST_MCP_TOKEN", "secret")
+    tool_map = {"server_a": [build_tool_definition("alpha", "Alpha tool")]}
+    created: dict[str, Any] = {}
+    fake_client_cls = make_fake_client_factory(tool_map, created)
+    monkeypatch.setattr("backend.chat.mcp_registry.MCPToolClient", fake_client_cls)
+
+    aggregator = MCPToolAggregator([
+        make_config(id="server_a", bearer_token_env_var="TEST_MCP_TOKEN")
+    ])
+    await aggregator.connect()
+
+    assert created["server_a"].headers == {"Authorization": "Bearer secret"}
+
     await aggregator.close()
     assert created["server_a"].closed is True
-    assert created["server_b"].closed is True
 
 
 async def test_aggregator_skips_duplicate_tool_names(

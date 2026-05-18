@@ -107,6 +107,29 @@ class TestConnection:
 
         await client.close()
 
+    async def test_successful_connection_with_headers(
+        self, mock_session: MagicMock
+    ) -> None:
+        client = MCPToolClient(
+            url="http://example.com/mcp",
+            server_id="test",
+            headers={"Authorization": "Bearer token"},
+        )
+
+        with (
+            patch("mcp.client.streamable_http.streamablehttp_client") as mock_http,
+            patch("backend.chat.mcp_client.ClientSession", return_value=mock_session),
+        ):
+            mock_http.return_value = _make_http_context()
+            await client.connect()
+
+            mock_http.assert_called_once_with(
+                "http://example.com/mcp",
+                headers={"Authorization": "Bearer token"},
+            )
+
+        await client.close()
+
     async def test_close_clears_state(self, mock_session: MagicMock) -> None:
         client = MCPToolClient(url="http://example.com/mcp", server_id="test")
 

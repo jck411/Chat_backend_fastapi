@@ -10,6 +10,7 @@ import asyncio
 import copy
 import json
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
@@ -45,6 +46,10 @@ class MCPServerConfig(BaseModel):
         description="Full MCP endpoint URL (e.g. http://192.168.1.110:9003/mcp)",
     )
     enabled: bool = Field(default=True, description="Whether to connect to this server")
+    bearer_token_env_var: str | None = Field(
+        default=None,
+        description="Optional env var containing a bearer token for this MCP server",
+    )
     disabled_tools: set[str] = Field(
         default_factory=set, description="Tool names to hide from LLM"
     )
@@ -59,6 +64,20 @@ class MCPServerConfig(BaseModel):
         if isinstance(value, str):
             return {value}
         raise TypeError("disabled_tools must be a sequence of strings or null")
+
+    def http_headers(self) -> dict[str, str]:
+        """Return resolved HTTP headers without storing secret values in config."""
+        if not self.bearer_token_env_var:
+            return {}
+        token = os.environ.get(self.bearer_token_env_var, "").strip()
+        if not token:
+            logger.warning(
+                "MCP server '%s' expects bearer token env var '%s', but it is unset",
+                self.id,
+                self.bearer_token_env_var,
+            )
+            return {}
+        return {"Authorization": f"Bearer {token}"}
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +162,7 @@ def _load_mcp_port_range() -> range:
         Path(__file__).parents[3] / "data" / "mcp_ports.conf",
         Path(__file__).parent.parent / "data" / "mcp_ports.conf",
     ]
-    start, end = 9003, 9017  # MCP discovery range. (knowledge_api on 9018 is a REST API, not MCP.)
+    start, end = 9003, 9017  # MCP discovery range. Scanned on all discovery_hosts (110, 117).
     for config_path in config_paths:
         try:
             for line in config_path.read_text().splitlines():
@@ -524,7 +543,11 @@ class MCPToolAggregator:
     async def _launch_server(self, config: MCPServerConfig) -> None:
         """Connect to an already-running MCP server at the configured URL."""
         try:
-            client = MCPToolClient(url=config.url, server_id=config.id)
+            client = MCPToolClient(
+                url=config.url,
+                server_id=config.id,
+                headers=config.http_headers(),
+            )
             await client.connect()
         except Exception:
             logger.exception("Failed to connect to MCP server '%s'", config.id)

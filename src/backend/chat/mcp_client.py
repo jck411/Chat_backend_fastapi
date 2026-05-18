@@ -25,9 +25,16 @@ class MCPToolClient:
     at the given URL.  It never spawns or manages server processes.
     """
 
-    def __init__(self, url: str, *, server_id: str | None = None) -> None:
+    def __init__(
+        self,
+        url: str,
+        *,
+        server_id: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         self._url = url
         self._server_id = server_id or url
+        self._headers = dict(headers or {})
         self._exit_stack: AsyncExitStack | None = None
         self._session: ClientSession | None = None
         self._init_result: Any | None = None  # InitializeResult from MCP handshake
@@ -70,7 +77,10 @@ class MCPToolClient:
             )
 
             async with asyncio.timeout(HTTP_CONNECTION_TIMEOUT):
-                http_manager = streamablehttp_client(self._url)
+                if self._headers:
+                    http_manager = streamablehttp_client(self._url, headers=self._headers)
+                else:
+                    http_manager = streamablehttp_client(self._url)
                 read_stream, write_stream, _ = await exit_stack.enter_async_context(
                     http_manager
                 )

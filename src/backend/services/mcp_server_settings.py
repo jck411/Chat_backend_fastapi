@@ -20,6 +20,8 @@ def _config_to_payload(config: MCPServerConfig) -> dict[str, Any]:
         "id": config.id,
         "url": config.url,
     }
+    if config.bearer_token_env_var:
+        data["bearer_token_env_var"] = config.bearer_token_env_var
     if config.disabled_tools:
         data["disabled_tools"] = sorted(config.disabled_tools)
     return data
