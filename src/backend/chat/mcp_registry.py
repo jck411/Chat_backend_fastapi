@@ -186,7 +186,7 @@ def _load_mcp_port_range() -> range:
         Path(__file__).parents[3] / "data" / "mcp_ports.conf",
         Path(__file__).parent.parent / "data" / "mcp_ports.conf",
     ]
-    start, end = 9003, 9017  # MCP discovery range. Scanned on all discovery_hosts (110, 117).
+    start, end = 9003, 9016  # MCP discovery range. Scanned on all discovery_hosts.
     for config_path in config_paths:
         try:
             for line in config_path.read_text().splitlines():

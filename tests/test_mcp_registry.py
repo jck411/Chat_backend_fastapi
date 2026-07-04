@@ -531,11 +531,11 @@ async def test_refresh_timeout_removes_unresponsive_client(
 
     monkeypatch.setattr("backend.chat.mcp_registry.MCPToolClient", SlowRefreshClient)
 
-    aggregator = MCPToolAggregator([make_config(id="knowledge")])
+    aggregator = MCPToolAggregator([make_config(id="server_a")])
     await aggregator.connect()
 
     assert aggregator.active_servers() == []
-    assert created["knowledge"].closed is True
+    assert created["server_a"].closed is True
 
 
 async def test_describe_servers(monkeypatch: pytest.MonkeyPatch) -> None:
